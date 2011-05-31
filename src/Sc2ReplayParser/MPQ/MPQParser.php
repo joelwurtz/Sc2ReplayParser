@@ -17,8 +17,31 @@
  */
 class MPQParser
 {
+  private static $cryptTable;
+  
   private $streamReader = null;
   private $version = null;
+  
+  private $hashTableSize;
+  private $hashTable;
+  private $blockTable;
+  private $sectorSize;
+  
+  const MPQ_HASH_TABLE_OFFSET = 0;
+	const MPQ_HASH_NAME_A = 1;
+	const MPQ_HASH_NAME_B = 2;
+  const MPQ_HASH_FILE_KEY = 3;
+  const MPQ_HASH_ENTRY_EMPTY = -1;
+  const MPQ_HASH_ENTRY_DELETED = -2;
+  
+  const MPQ_FLAG_FILE = 0x80000000;
+  const MPQ_FLAG_CHECKSUM = 0x04000000;
+  const MPQ_FLAG_DELETED = 0x02000000;
+  const MPQ_FLAG_SINGLEUNIT = 0x01000000;
+  const MPQ_FLAG_H_ENCRYPTED = 0x00020000;
+  const MPQ_FLAG_ENCRYPTED = 0x00010000;
+  const MPQ_FLAG_COMPRESSED = 0x00000200;
+  const MPQ_FLAG_IMPLODED = 0x00000100;
   
   public function __construct($file)
   {
@@ -49,8 +72,163 @@ class MPQParser
     
     $this->streamReader->offset($headerOffset);
     
+    //Header of mpq
+    $this->streamReader->readBytes(4);
     
+    $headerSize = $this->streamReader->readUInt32();
+    $archiveSize = $this->streamReader->readUInt32();
+    $formatVersion = $this->streamReader->readUInt16();
+    $sectorSizeShift = $this->streamReader->readByte();
     
-    print_r($userData);
+    $this->streamReader->skip(1);
+    
+    $hashTableOffset = $this->streamReader->readUInt32() + $headerOffset;
+    $blockTableOffset = $this->streamReader->readUInt32() + $headerOffset;
+    $this->hashTableSize = $hashTableEntries = $this->streamReader->readUInt32();
+    $blockTableEntries = $this->streamReader->readUInt32();
+    
+    $this->sectorSize = 512 * pow(2, $sectorSizeShift);
+    
+    //Decode hash table
+    $this->streamReader->offset($hashTableOffset);
+    $hashSize = $hashTableEntries * 4;
+    $hashArray = array();
+    
+    while ($hashSize > 0)
+    {
+      $hashArray[] = $this->streamReader->readUInt32();
+      $hashSize--;
+    }
+    
+    $this->hashTable = $this->decryptData($hashArray,$this->hashString("(hash table)", self::MPQ_HASH_FILE_KEY));
+    
+    //Decode block table
+    $this->streamReader->offset($blockTableOffset);
+    $blockSize = $blockTableEntries * 4;
+    $blockArray = array();
+    
+    while ($blockSize > 0)
+    {
+      $blockArray[] = $this->streamReader->readUInt32();
+      $blockSize--;
+    }
+    
+    $this->blockTable = $this->decryptData($blockArray,$this->hashString("(block table)", self::MPQ_HASH_FILE_KEY));
+    
+  }
+  
+  public function getInputStream($filename)
+  {
+    $hashA = $this->hashString($filename, self::MPQ_HASH_NAME_A);
+		$hashB = $this->hashString($filename, self::MPQ_HASH_NAME_B);
+		
+		$hashStart = $this->hashString($filename, self::MPQ_HASH_TABLE_OFFSET) & ($this->hashTableSize - 1);
+		
+		$keyFile = array_search($hashA, $this->hashTable);
+		
+		if ($keyFile === false || ($keyFile % 4) != 0 || $this->hashTable[$keyFile + 1] != $hashB)
+		{
+		  throw new Exception(sprintf("File %s not found in mpq archive", $filename));
+		}
+		
+		$blockIndex = $this->hashTable[$keyFile + 3] * 4;
+		
+		$dataOffset = $this->blockTable[$blockIndex];
+		$compressedSize = $this->blockTable[$blockIndex + 1];
+		$fileSize = $this->blockTable[$blockIndex + 2];
+		$fileFlags = $this->blockTable[$blockIndex + 3];
+		
+		if (!$this->hasFlag($fileFlags, self::MPQ_FLAG_FILE))
+		{
+		  throw new Exception(sprintf("File %s does not exist", $filename));
+		}
+		
+		$this->streamReader->offset($dataOffset);
+		
+		$sectors = array();
+		
+		//If file is not in an single unit then it have sector
+		if ($this->hasFlag($fileFlags, self::MPQ_FLAG_SINGLEUNIT))
+		{
+		  //A file with length A And a Sector With Length B will have A % B + 1 Sector And A sector which contains size
+		  $nbSector = ($fileSize % $this->sectorSize) + 1 + 1;
+		  while($nbSector > 0)
+		  {
+		    $sectors[] = $this->streamReader->readUInt32();
+		    $compressedSize -= 4;
+		  }
+		  
+		  //If checksum flag is on an additional sector is present
+		  if ($this->hasFlag($fileFlags, self::MPQ_FLAG_CHECKSUM))
+		  {
+		    $sectors[] = $this->streamReader->readUInt32();
+		    $compressedSize -= 4;
+		  }
+		}
+		else
+		{
+		  $sectors[] = 0;
+		  $sectors[] = $compressedSize;
+		}
+		
+		print_r($sectors);
+  }
+  
+  public static function getCryptValue($key) {
+    if (self::$cryptTable === null)
+    {
+      self::$cryptTable = array();
+  		$seed = 0x00100001;
+  		$index1 = 0;
+  		$index2 = 0;
+		
+  		for ($index1 = 0; $index1 < 0x100; $index1++) {
+  			for ($index2 = $index1, $i = 0; $i < 5; $i++, $index2 += 0x100) {
+  				$seed = (Math::uPlus($seed * 125,3)) % 0x2AAAAB;
+  				$temp1 = ($seed & 0xFFFF) << 0x10;
+				
+  				$seed = (Math::uPlus($seed * 125,3)) % 0x2AAAAB;
+  				$temp2 = ($seed & 0xFFFF);
+				
+  				self::$cryptTable[$index2] = ($temp1 | $temp2);
+  			}
+  		}
+    }
+		return self::$cryptTable[$key];
+	}
+  
+  public function decryptData($data, $key)
+  {
+    $seed = ((0xEEEE << 16) | 0xEEEE);
+		$datalen = count($data);
+		for($i = 0;$i < $datalen;$i++) {
+			$seed = Math::uPlus($seed,self::getCryptValue(0x400 + ($key & 0xFF)));
+			$ch = $data[$i] ^ (Math::uPlus($key,$seed));
+
+			$key = (Math::uPlus(((~$key) << 0x15), 0x11111111)) | (Math::rShift($key,0x0B));
+			$seed = Math::uPlus(Math::uPlus(Math::uPlus($ch,$seed),($seed << 5)),3);
+			$data[$i] = $ch & ((0xFFFF << 16) | 0xFFFF);
+		}
+		return $data;
+  }
+  
+  public function hashString($string, $hashType) {
+		$seed1 = 0x7FED7FED;
+		$seed2 = ((0xEEEE << 16) | 0xEEEE);
+		$strLen = strlen($string);
+		
+		for ($i = 0;$i < $strLen;$i++) {
+			$next = ord(strtoupper(substr($string, $i, 1)));
+
+			$seed1 = self::getCryptValue(($hashType << 8) + $next) ^ (Math::uPlus($seed1,$seed2));
+			$seed2 = Math::uPlus(Math::uPlus(Math::uPlus(Math::uPlus($next,$seed1),$seed2),$seed2 << 5),3);
+		}
+		
+		return $seed1;
+	}
+	
+	private function hasFlag($data, $flag)
+  {
+    return (boolean)($data & $flag);
   }
 }

@@ -8,24 +8,23 @@
  */
 
 /**
- * InputStream represent an input stream of bytes.
+ * StringInputStream use to retrieve data from a string.
  *
  * @package    Sc2ReplayParser
- * @subpackage custom
+ * @subpackage IO
  * @author     joel.wurtz@gmail.com
  * @version    1.0.0
  */
-class FileInputStream implements InputStream
+class StringInputStream implements InputStream
 {
-  private $resource;
-  private $size;
+  private $size:
+  private $data;
   private $read = 0;
-  private $markArray = array();
   
-  public function __construct($file)
+  public function __construct($data)
   {
-    $this->size = filesize($file);
-    $this->resource = fopen($file, 'rb');
+    $this->size = strlen($data);
+    $this->data = $data;
   }
   
   public function available()
@@ -35,14 +34,14 @@ class FileInputStream implements InputStream
   
   public function read($read = 1)
   {
+    $return = substr($this->data, $this->read, $read);
     $this->read += $read;
-    return fread($this->resource, $read);
+    return $return;
   }
   
   public function skip($skip)
   {
     $this->read += $skip;
-    return fseek($this->resource, $skip, SEEK_CUR);
   }
   
   public function mark($key = "")
@@ -53,13 +52,10 @@ class FileInputStream implements InputStream
   public function reset($key = "")
   {
     $this->read = $this->markArray[$key];
-    return fseek($this->resource, $this->markArray[$key], SEEK_SET);
   }
   
   public function offset($offset)
   {
     $this->read = $offset;
-    return fseek($this->resource, $offset, SEEK_SET);
   }
-  
 }
