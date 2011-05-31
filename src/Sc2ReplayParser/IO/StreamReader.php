@@ -42,6 +42,18 @@ abstract class StreamReader implements InputStream
     return $this->stream->read($bytes);
   }
   
+  public function readLine()
+  {
+    $line = "";
+    do 
+    {
+      $char = chr($this->readByte());
+      $line .= $char;
+    } while ($this->available() > 0 && $char != "\n");
+    $line = substr($line, 0, strlen($line) - 1);
+    return $line;
+  }
+  
   abstract public function readUInt16();
   
   abstract public function readUInt32();

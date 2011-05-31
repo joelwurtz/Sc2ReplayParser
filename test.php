@@ -13,4 +13,6 @@ $mpq = new MPQParser("tests/Replay.sc2replay");
 
 $mpq->extract();
 
-$file = $mpq->getInputStream("(listfile)");
+$file = $mpq->getFileList();
+
+print_r($file);
