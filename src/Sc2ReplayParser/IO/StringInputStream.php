@@ -17,7 +17,7 @@
  */
 class StringInputStream implements InputStream
 {
-  private $size:
+  private $size;
   private $data;
   private $read = 0;
   

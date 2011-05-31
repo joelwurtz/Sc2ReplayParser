@@ -23,6 +23,7 @@ class MPQParser
   private $version = null;
   
   private $hashTableSize;
+  private $headerOffset;
   private $hashTable;
   private $blockTable;
   private $sectorSize;
@@ -42,6 +43,9 @@ class MPQParser
   const MPQ_FLAG_ENCRYPTED = 0x00010000;
   const MPQ_FLAG_COMPRESSED = 0x00000200;
   const MPQ_FLAG_IMPLODED = 0x00000100;
+  
+  const MPQ_COMPRESS_DEFLATE = 0x02;
+  const MPQ_COMPRESS_BZIP2 = 0x10;
   
   public function __construct($file)
   {
@@ -63,7 +67,7 @@ class MPQParser
   {
     //First parsing user data block
     $userDataMaxSize = $this->streamReader->readUInt32();
-    $headerOffset = $this->streamReader->readUInt32();
+    $this->headerOffset = $headerOffset = $this->streamReader->readUInt32();
     $userDataSize = $this->streamReader->readUInt32();
     
     //Mark current offset as start of user data
@@ -131,9 +135,11 @@ class MPQParser
 		  throw new Exception(sprintf("File %s not found in mpq archive", $filename));
 		}
 		
+		
+		
 		$blockIndex = $this->hashTable[$keyFile + 3] * 4;
 		
-		$dataOffset = $this->blockTable[$blockIndex];
+		$dataOffset = $this->blockTable[$blockIndex] + $this->headerOffset;
 		$compressedSize = $this->blockTable[$blockIndex + 1];
 		$fileSize = $this->blockTable[$blockIndex + 2];
 		$fileFlags = $this->blockTable[$blockIndex + 3];
@@ -145,33 +151,74 @@ class MPQParser
 		
 		$this->streamReader->offset($dataOffset);
 		
-		$sectors = array();
+		$sectorsOffset = array();
 		
 		//If file is not in an single unit then it have sector
-		if ($this->hasFlag($fileFlags, self::MPQ_FLAG_SINGLEUNIT))
+		if (!$this->hasFlag($fileFlags, self::MPQ_FLAG_SINGLEUNIT))
 		{
-		  //A file with length A And a Sector With Length B will have A % B + 1 Sector And A sector which contains size
+		  //A file with length A And a Sector With Length B will have A % B + 1 Sector And A sector which contains size of total for easy streaming
 		  $nbSector = ($fileSize % $this->sectorSize) + 1 + 1;
 		  while($nbSector > 0)
 		  {
-		    $sectors[] = $this->streamReader->readUInt32();
+		    $sectorsOffset[] = $this->streamReader->readUInt32();
 		    $compressedSize -= 4;
 		  }
 		  
 		  //If checksum flag is on an additional sector is present
 		  if ($this->hasFlag($fileFlags, self::MPQ_FLAG_CHECKSUM))
 		  {
-		    $sectors[] = $this->streamReader->readUInt32();
+		    $sectorsOffset[] = $this->streamReader->readUInt32();
 		    $compressedSize -= 4;
 		  }
 		}
 		else
 		{
-		  $sectors[] = 0;
-		  $sectors[] = $compressedSize;
+		  $nbSector = 2;
+		  $sectorsOffset[] = 0;
+		  $sectorsOffset[] = $compressedSize;
 		}
 		
-		print_r($sectors);
+		$stringStream = "";
+		
+		for($i=0; $i<($nbSector - 1); $i++)
+		{
+		  $compressedSectorSize = $sectorsOffset[$i + 1] - $sectorsOffset[$i];
+		  $this->streamReader->offset($dataOffset + $sectorsOffset[$i]);
+		  //If compressed data are not equal to sector and flag compressed data flag then we need decompressed (if compressed size is equal or superior sector is not compress even flag is set)
+		  if ($compressedSectorSize != $this->sectorSize && $this->hasFlag($fileFlags, self::MPQ_FLAG_COMPRESSED))
+		  {
+		    //Compressed
+		    $compressionMask = $this->streamReader->readByte();
+		    $compressedData = $this->streamReader->readString($compressedSectorSize - 1);
+		    
+		    //@TODO ADD Compression mode
+		    switch ($compressionMask)
+		    {
+		    case self::MPQ_COMPRESS_BZIP2:
+		      $unCompressedData = $this->decompressBZip2($compressedData);
+		      break;
+		      
+		    case self::MPQ_COMPRESS_DEFLATE:
+		      $unCompressedData = $this->decompressDeflate($compressedData);
+		      break;
+		      
+		    default:
+		      throw new Exception(sprintf("Can't decompress file %s, compression mode 0x%02X not supported", $filename, $compressionMask));
+		      break;
+		    }
+		    
+		    $stringStream .= $unCompressedData;
+		  }
+		  else
+		  {
+		    //UnCompressed
+		    $stringStream .= $this->streamReader->readString($compressedSectorSize);
+		  }
+		}
+		
+		//@TODO CHECKSUM VERIF
+		
+		return new StringInputStream($stringStream);
   }
   
   public static function getCryptValue($key) {
@@ -225,6 +272,26 @@ class MPQParser
 		}
 		
 		return $seed1;
+	}
+	
+	private function decompressDeflate($data)
+	{
+	  if (!function_exists("gzinflate")){
+			throw new Exception("You need to install gzlib on your system");
+		}
+		return gzinflate(substr($data,2,strlen($data) - 2));
+	}
+	
+	private function decompressBZip2($data)
+	{
+	  if (!function_exists("bzdecompress")){
+			throw new Exception("You need to install bzip2 lib on your system");
+		}
+		$tmp = bzdecompress($data);
+		if (is_numeric($tmp)) {
+		  throw new Exception(sprintf("Bzip2 returned error code: %d",$tmp));
+		}
+		return $tmp;
 	}
 	
 	private function hasFlag($data, $flag)
