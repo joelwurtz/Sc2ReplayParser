@@ -21,13 +21,15 @@ class LittleEndianStreamReader extends StreamReader
   {
     $bytes = $this->stream->read(2);
     $tmp = unpack("v", $bytes);
+
     return $tmp[1];
   }
-  
+
   public function readUInt32()
   {
     $bytes = $this->stream->read(4);
     $tmp = unpack("V", $bytes);
+
     return $tmp[1];
   }
 }

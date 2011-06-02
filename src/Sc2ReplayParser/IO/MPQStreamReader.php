@@ -23,18 +23,18 @@ class MPQStreamReader extends LittleEndianStreamReader
   const SERIAL_TYPE_INT8 = 0x06;
   const SERIAL_TYPE_INT32 = 0x07;
   const SERIAL_TYPE_VLF_NUMBER = 0x09;
-  
+
   public function readSerializedData()
   {
     $byteDataType = $this->readByte();
-    
+
     switch($byteDataType)
     {
     case self::SERIAL_TYPE_BINARY:
       $byteLen = $this->readVLFNumber();
       return $this->readString($byteLen);
       break;
-      
+
     case self::SERIAL_TYPE_ARRAY_NUM:
       $array = array();
       $this->skip(2);
@@ -46,7 +46,7 @@ class MPQStreamReader extends LittleEndianStreamReader
       }
       return $array;
       break;
-      
+
     case self::SERIAL_TYPE_ARRAY_ASSOC:
       $array = array();
       $countElem = $this->readVLFNumber();
@@ -58,25 +58,25 @@ class MPQStreamReader extends LittleEndianStreamReader
       }
       return $array;
       break;
-    
+
     case self::SERIAL_TYPE_INT8:
       return $this->readByte();
       break;
-      
+
     case self::SERIAL_TYPE_INT32:
       return $this->readUInt32();
       break;
-      
+
     case self::SERIAL_TYPE_VLF_NUMBER:
       return $this->readVLFNumber();
       break;
-      
+
     default:
       throw new Exception(sprintf("Undefined data type 0x%X", $byteDataType));
       break;
     }
   }
-  
+
   public function readVLFNumber()
   {
     $multi = 1;
@@ -84,27 +84,29 @@ class MPQStreamReader extends LittleEndianStreamReader
     $number = 0;
     $first = true;
     $byte = 0;
-    
+
     while ($first || $byte >= 0x80)
     {
       $byte = $this->readByte();
-      $number += ($byte & 0x7F) * pow(2, $bytes * 7); 
-      
+      $number += ($byte & 0x7F) * pow(2, $bytes * 7);
+
       if ($first)
       {
         $first = false;
+
         if ($byte & 0x01)
         {
           $multi = -1;
           $number--;
         }
       }
+
       $bytes++;
     }
-    
+
     $number *= $multi;
 		$number /= 2;
-		
+
 		return $number;
   }
 }

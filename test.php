@@ -13,6 +13,22 @@ $mpq = new MPQParser("tests/Replay.sc2replay");
 
 $mpq->extract();
 
-$file = $mpq->getFileList();
+$file_list = $mpq->getFileList();
 
-print_r($file);
+var_dump($file_list);
+
+foreach ($file_list as $file)
+{
+	echo $file.'<br />';
+	try
+	{
+		$content = $mpq->getInputStream($file);
+		var_dump($content);
+	}
+	catch(Exception $e)
+	{
+		echo 'Error : '.$e->getMessage();
+	}
+
+	echo '<hr />';
+}

@@ -21,45 +21,48 @@ class FileInputStream implements InputStream
   private $size;
   private $read = 0;
   private $markArray = array();
-  
+
   public function __construct($file)
   {
     $this->size = filesize($file);
     $this->resource = fopen($file, 'rb');
   }
-  
+
   public function available()
   {
     return ($this->size - $this->read);
   }
-  
+
   public function read($read = 1)
   {
     $this->read += $read;
+
     return fread($this->resource, $read);
   }
-  
+
   public function skip($skip)
   {
     $this->read += $skip;
+
     return fseek($this->resource, $skip, SEEK_CUR);
   }
-  
+
   public function mark($key = "")
   {
     $this->markArray[$key] = $this->read;
   }
-  
+
   public function reset($key = "")
   {
     $this->read = $this->markArray[$key];
+
     return fseek($this->resource, $this->markArray[$key], SEEK_SET);
   }
-  
+
   public function offset($offset)
   {
     $this->read = $offset;
+
     return fseek($this->resource, $offset, SEEK_SET);
   }
-  
 }
