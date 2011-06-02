@@ -25,15 +25,20 @@ class Math
   	$o1l = $o1 & 0xFFFF;
 
   	$o2h = ($o2 >> 16) & 0xFFFF;
-  	$o2l = $o2 & 0xFFFF;	
+  	$o2l = $o2 & 0xFFFF;
 
   	$ol = $o1l + $o2l;
   	$oh = $o1h + $o2h;
-  	if ($ol > 0xFFFF) { $oh += (($ol >> 16) & 0xFFFF); }
-  	return ((($oh << 16) & (0xFFFF << 16)) | ($ol & 0xFFFF));
+
+    if ($ol > 0xFFFF)
+    {
+      $oh += (($ol >> 16) & 0xFFFF);
+    }
+
+    return ((($oh << 16) & (0xFFFF << 16)) | ($ol & 0xFFFF));
   }
-  
-  public static function rShift($num,$bits) 
+
+  public static function rShift($num,$bits)
   {
   	return (($num >> 1) & 0x7FFFFFFF) >> ($bits - 1);
   }
