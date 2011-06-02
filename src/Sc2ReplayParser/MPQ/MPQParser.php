@@ -36,7 +36,7 @@ class MPQParser
   private $blockTable;
   private $sectorSize;
   private $build;
-  
+
   const MPQ_HASH_TABLE_OFFSET = 0;
   const MPQ_HASH_NAME_A = 1;
   const MPQ_HASH_NAME_B = 2;
@@ -66,14 +66,14 @@ class MPQParser
   {
     return $this->build;
   }
-  
+
   private function checkFile()
   {
     $info = $this->streamReader->readBytes(4);
 
     if ($info[1] != 0x4D || $info[2] != 0x50 || $info[3] != 0x51 || $info[4] != 0x1B)
     {
-      throw new Exception("File is not a MPQ Archive");
+      throw new \Exception("File is not a MPQ Archive");
     }
   }
 
@@ -87,7 +87,7 @@ class MPQParser
     //Mark current offset as start of user data
     $this->streamReader->mark("userDataStart");
     $userData = $this->streamReader->readSerializedData();
-    
+
     $this->build = $userData[1][4];
     $this->streamReader->offset($headerOffset);
 
@@ -147,7 +147,7 @@ class MPQParser
 
     if ($keyFile === false || ($keyFile % 4) != 0 || $this->hashTable[$keyFile + 1] != $hashB)
     {
-      throw new Exception(sprintf("File %s not found in mpq archive", $filename));
+      throw new \Exception(sprintf("File %s not found in mpq archive", $filename));
     }
 
     $blockIndex = $this->hashTable[$keyFile + 3] * 4;
@@ -159,7 +159,7 @@ class MPQParser
 
     if (!$this->hasFlag($fileFlags, self::MPQ_FLAG_FILE))
     {
-      throw new Exception(sprintf("File %s does not exist", $filename));
+      throw new \Exception(sprintf("File %s does not exist", $filename));
     }
 
     $this->streamReader->offset($dataOffset);
@@ -218,7 +218,7 @@ class MPQParser
           break;
 
         default:
-          throw new Exception(sprintf("Can't decompress file %s, compression mode 0x%02X not supported", $filename, $compressionMask));
+          throw new \Exception(sprintf("Can't decompress file %s, compression mode 0x%02X not supported", $filename, $compressionMask));
           break;
         }
 
@@ -315,7 +315,7 @@ class MPQParser
   {
     if (!function_exists("gzinflate"))
     {
-      throw new Exception("You need to install gzlib on your system");
+      throw new \Exception("You need to install gzlib on your system");
     }
 
     return gzinflate(substr($data,2,strlen($data) - 2));
@@ -325,14 +325,14 @@ class MPQParser
   {
     if (!function_exists("bzdecompress"))
     {
-      throw new Exception("You need to install bzip2 lib on your system");
+      throw new \Exception("You need to install bzip2 lib on your system");
     }
 
     $tmp = bzdecompress($data);
 
     if (is_numeric($tmp))
     {
-      throw new Exception(sprintf("Bzip2 returned error code: %d",$tmp));
+      throw new \Exception(sprintf("Bzip2 returned error code: %d",$tmp));
     }
 
     return $tmp;
