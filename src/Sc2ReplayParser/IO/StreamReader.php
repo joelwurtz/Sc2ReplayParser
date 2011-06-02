@@ -46,6 +46,7 @@ abstract class StreamReader implements InputStream
 
   public function readLine()
   {
+    $char = null;
     $line = "";
 
     while ($this->available() > 0 && $char != "\n")

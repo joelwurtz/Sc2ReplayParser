@@ -9,7 +9,7 @@ require_once "src/Sc2ReplayParser/IO/StringInputStream.php";
 require_once "src/Sc2ReplayParser/Math/Math.php";
 require_once "src/Sc2ReplayParser/MPQ/MPQParser.php";
 
-$mpq = new MPQParser("tests/Replay22.2. jreplay");
+$mpq = new MPQParser("tests/Replay22.2.replay");
 
 $mpq->extract();
 

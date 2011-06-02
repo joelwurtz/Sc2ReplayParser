@@ -291,7 +291,7 @@ class MPQParser
 
     while ($fileListStream->available() > 0)
     {
-      $arrayListFile[] = trim($fileListStream->readLine());
+      $arrayListFile[] = $fileListStream->readLine();
     }
 
     return $arrayListFile;
