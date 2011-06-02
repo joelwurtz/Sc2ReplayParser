@@ -111,4 +111,20 @@ class MPQStreamReader extends LittleEndianStreamReader
 
 		return $number;
   }
+  
+  public function readTimestamp()
+  {
+    $firstByte = $this->readByte();
+    $bytesLeft = $firstByte & 0x03;
+    $timestamp = $firstByte >> $bytesLeft;
+    while($bytesLeft > 0)
+    {
+      $byte = $this->readByte();
+      $timestamp = $timestamp << 8;
+      $timestamp += $byte;
+      $bytesLeft--;
+    }
+    
+    return $timestamp;
+  }
 }

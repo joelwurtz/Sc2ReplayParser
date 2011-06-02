@@ -10,6 +10,8 @@
 namespace Sc2ReplayParser\Parser;
 
 use Sc2ReplayParser\IO\StreamReader;
+use Monolog\Logger;
+use Sc2ReplayParser\Entity\Replay;
 
 /**
  * Parser use to parse file.
@@ -26,11 +28,26 @@ abstract class Parser
   
   protected $streamReader;
   protected $build;
+  protected $replay;
   
-  public function __construct(StreamReader $streamReader, $build = self::BUILD_LAST)
+  private $log;
+  
+  public function __construct(Replay $replay, StreamReader $streamReader, $build = self::BUILD_LAST, $log = null)
   {
     $this->build = $build;
+    $this->replay = $replay;
     $this->streamReader = $streamReader;
+    
+    if ($log === null || !($log instanceof Logger))
+    {
+      $log = new Logger('null');
+    }
+    $this->log = $log;
+  }
+  
+  public function getLog()
+  {
+    return $this->log;
   }
   
   abstract public function parse();

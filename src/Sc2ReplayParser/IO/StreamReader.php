@@ -95,4 +95,41 @@ abstract class StreamReader implements InputStream
   {
     return $this->stream->offset($offset);
   }
+  
+  public function findSequence($sequence, $fromStart = false)
+  {
+    //$this->mark("sequenceSearchStart");
+    if ($fromStart)
+    {
+      $this->offset(0);
+    }
+    
+    if (!is_array($sequence))
+    {
+      $sequence = array($sequence);
+    }
+    
+    $firstByte = array_shift($sequence);
+    $byteToRead = count($sequence);
+    
+    while ($this->available() > 0)
+    {
+      $byte = $this->readByte();
+      if ($firstByte == $byte && $this->available() >= $byteToRead)
+      {
+        $this->mark("beginSearch");
+        $bytes = $this->readBytes($byteToRead);
+        if ($bytes === $sequence)
+        {
+          return true;
+        }
+        else
+        {
+          $this->reset("beginSearch");
+        }
+      }
+    }
+    
+    return false;
+  }
 }

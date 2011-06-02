@@ -73,7 +73,7 @@ class MPQParser
 
     if ($info[1] != 0x4D || $info[2] != 0x50 || $info[3] != 0x51 || $info[4] != 0x1B)
     {
-      throw new Exception("File is not a SC2Replay");
+      throw new Exception("File is not a MPQ Archive");
     }
   }
 
