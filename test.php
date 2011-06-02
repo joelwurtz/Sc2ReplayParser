@@ -9,26 +9,25 @@ require_once "src/Sc2ReplayParser/IO/StringInputStream.php";
 require_once "src/Sc2ReplayParser/Math/Math.php";
 require_once "src/Sc2ReplayParser/MPQ/MPQParser.php";
 
-$mpq = new MPQParser("tests/Replay.sc2replay");
+$mpq = new MPQParser("tests/Replay22.2. jreplay");
 
 $mpq->extract();
 
 $file_list = $mpq->getFileList();
 
-var_dump($file_list);
-
-foreach ($file_list as $file)
+try
 {
-	echo $file.'<br />';
-	try
-	{
-		$content = $mpq->getInputStream($file);
-		var_dump($content);
-	}
-	catch(Exception $e)
-	{
-		echo 'Error : '.$e->getMessage();
-	}
+  $is = $mpq->getInputStream('replay.details');
 
-	echo '<hr />';
+  while($is->available() > 0)
+  {
+    echo "Data : \n";
+    $data = $is->readSerializedData();
+    print_r($data);
+    echo "\n\n";
+  }
+}
+catch(Exception $e)
+{
+ echo sprintf("Erreur sur le fichier %s : %s\n", $f, $e->getMessage());
 }

@@ -184,8 +184,9 @@ class MPQParser
     {
       $compressedSectorSize = $sectorsOffset[$i + 1] - $sectorsOffset[$i];
       $this->streamReader->offset($dataOffset + $sectorsOffset[$i]);
+
       //If compressed data are not equal to sector and flag compressed data flag then we need decompressed (if compressed size is equal or superior sector is not compress even flag is set)
-      if ($compressedSectorSize != $this->sectorSize && $this->hasFlag($fileFlags, self::MPQ_FLAG_COMPRESSED))
+      if ($compressedSectorSize != $this->sectorSize && $this->hasFlag($fileFlags, self::MPQ_FLAG_COMPRESSED) && (!$this->hasFlag($fileFlags, self::MPQ_FLAG_SINGLEUNIT) || $compressedSectorSize != $fileSize))
       {
         //Compressed
         $compressionMask = $this->streamReader->readByte();
@@ -218,7 +219,7 @@ class MPQParser
 
     //@TODO CHECKSUM VERIF
 
-    return new LittleEndianStreamReader(new StringInputStream($stringStream));
+    return new MPQStreamReader(new StringInputStream($stringStream));
   }
 
   public static function getCryptValue($key)

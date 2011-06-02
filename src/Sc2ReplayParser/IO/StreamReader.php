@@ -56,7 +56,7 @@ abstract class StreamReader implements InputStream
 
     $line = substr($line, 0, strlen($line) - 1);
 
-    return $line;
+    return trim($line);
   }
 
   abstract public function readUInt16();
