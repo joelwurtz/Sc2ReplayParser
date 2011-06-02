@@ -7,6 +7,8 @@
  * file that was distributed with this source code.
  */
 
+namespace Sc2ReplayParser\Math;
+
 /**
  * Math use to define some math functions.
  *

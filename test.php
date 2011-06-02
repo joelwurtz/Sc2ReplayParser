@@ -1,32 +1,22 @@
 <?php
+require_once "autoload.php";
 
-require_once "src/Sc2ReplayParser/IO/InputStream.php";
-require_once "src/Sc2ReplayParser/IO/FileInputStream.php";
-require_once "src/Sc2ReplayParser/IO/StreamReader.php";
-require_once "src/Sc2ReplayParser/IO/LittleEndianStreamReader.php";
-require_once "src/Sc2ReplayParser/IO/MPQStreamReader.php";
-require_once "src/Sc2ReplayParser/IO/StringInputStream.php";
-require_once "src/Sc2ReplayParser/Math/Math.php";
-require_once "src/Sc2ReplayParser/MPQ/MPQParser.php";
+use Sc2ReplayParser\MPQ\MPQParser;
+use Sc2ReplayParser\Parser\ReplayAttributesEvents;
 
-$mpq = new MPQParser("tests/Replay22.2. jreplay");
-
+$mpq = new MPQParser("tests/FFA2.SC2Replay");
 $mpq->extract();
-
-$file = $mpq->getFileList();
-
 
 try 
 {
   $is = $mpq->getInputStream('replay.details');
-
-  while($is->available() > 0)
-  {
-    echo "Data : \n";
-    $data = $is->readSerializedData();
-    print_r($data);
-    echo "\n\n";
-  }
+  $data = $is->readSerializedData();
+  
+  $rae = new ReplayAttributesEvents($mpq->getInputStream('replay.attributes.events'), $mpq->getBuild());
+  
+  $rae->parse();
+  
+  //print_r($data);
 }
 catch(Exception $e)
 {

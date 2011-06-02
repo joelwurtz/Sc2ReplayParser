@@ -7,6 +7,8 @@
  * file that was distributed with this source code.
  */
 
+namespace Sc2ReplayParser\IO;
+
 /**
  * InputStream represent an input stream of bytes.
  *

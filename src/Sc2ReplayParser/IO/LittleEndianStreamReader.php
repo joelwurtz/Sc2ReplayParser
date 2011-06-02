@@ -7,6 +7,8 @@
  * file that was distributed with this source code.
  */
 
+namespace Sc2ReplayParser\IO;
+
 /**
  * LittleEndianStreamReader use to read data from an input stream by using little endian order.
  *

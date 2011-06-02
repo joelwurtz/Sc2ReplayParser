@@ -7,6 +7,14 @@
  * file that was distributed with this source code.
  */
 
+namespace Sc2ReplayParser\MPQ;
+
+use Sc2ReplayParser\IO\MPQStreamReader;
+use Sc2ReplayParser\IO\FileInputStream;
+use Sc2ReplayParser\IO\StringInputStream;
+
+use Sc2ReplayParser\Math\Math;
+
 /**
  * MPQParser use to parse mpqfile.
  *
@@ -27,6 +35,7 @@ class MPQParser
   private $hashTable;
   private $blockTable;
   private $sectorSize;
+  private $build;
   
   const MPQ_HASH_TABLE_OFFSET = 0;
   const MPQ_HASH_NAME_A = 1;
@@ -54,6 +63,11 @@ class MPQParser
     $this->checkFile();
   }
   
+  public function getBuild()
+  {
+    return $this->build;
+  }
+  
   private function checkFile()
   {
     $info = $this->streamReader->readBytes(4);
@@ -73,6 +87,9 @@ class MPQParser
     //Mark current offset as start of user data
     $this->streamReader->mark("userDataStart");
     $userData = $this->streamReader->readSerializedData();
+    
+    
+    $this->build = $userData[1][4];
     
     $this->streamReader->offset($headerOffset);
     

@@ -7,6 +7,8 @@
  * file that was distributed with this source code.
  */
 
+namespace Sc2ReplayParser\IO;
+
 /**
  * MPQStreamReader use to read data from mpq file.
  *

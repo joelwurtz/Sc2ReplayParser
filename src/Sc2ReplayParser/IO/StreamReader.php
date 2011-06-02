@@ -7,6 +7,8 @@
  * file that was distributed with this source code.
  */
 
+namespace Sc2ReplayParser\IO;
+
 /**
  * StreamReader use to read stream from a input stream.
  *
