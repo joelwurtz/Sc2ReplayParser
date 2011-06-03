@@ -22,6 +22,7 @@ class StringInputStream implements InputStream
   private $size;
   private $data;
   private $read = 0;
+  private $log = array();
 
   public function __construct($data)
   {
@@ -39,12 +40,25 @@ class StringInputStream implements InputStream
     $return = substr($this->data, $this->read, $read);
     $this->read += $read;
 
+    if (!empty($this->log))
+    {
+      foreach($this->log as $key => $logbyte)
+      {
+        $nbByte = strlen($return);
+        $bytesArray = unpack('C'.$nbByte, $return);
+        foreach($bytesArray as $byte)
+        {
+          $this->log[$key][] = sprintf("%02X", $byte);
+        }
+      }
+    }
+
     return $return;
   }
 
   public function skip($skip)
   {
-    $this->read += $skip;
+    $this->read($skip);
   }
 
   public function mark($key = "")
@@ -60,5 +74,17 @@ class StringInputStream implements InputStream
   public function offset($offset)
   {
     $this->read = $offset;
+  }
+  
+  public function beginLog($key = "")
+  {
+    $this->log[$key] = array();
+  }
+  
+  public function endLog($key = "")
+  {
+    $tmp = $this->log[$key];
+    unset($this->log[$key]);
+    return $tmp;
   }
 }

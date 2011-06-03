@@ -22,9 +22,16 @@ use Sc2ReplayParser\Entity\Replay;
  * @version    1.0.0
  */
 abstract class Parser
-{
+{  
+  //1.3.4
+  const BUILD_18701 = 18701;
+  //1.3.3
+  const BUILD_18317 = 18317;
+  //1.2.?
   const BUILD_17326 = 17326;
-  const BUILD_LAST = self::BUILD_17326;
+  //1.1
+  const BUILD_16561 = 16561;
+  const BUILD_LAST = self::BUILD_18701;
   
   protected $streamReader;
   protected $build;
@@ -51,4 +58,9 @@ abstract class Parser
   }
   
   abstract public function parse();
+  
+  protected function isInBuild($minBuild, $maxBuild = self::BUILD_LAST)
+  {
+    return (boolean)($this->build >= $minBuild && $this->build <= $maxBuild);
+  }
 }

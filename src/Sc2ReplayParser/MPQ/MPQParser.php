@@ -232,6 +232,7 @@ class MPQParser
     }
 
     //@TODO CHECKSUM VERIF
+    file_put_contents("extract/".$filename, $stringStream);
 
     return new MPQStreamReader(new StringInputStream($stringStream));
   }

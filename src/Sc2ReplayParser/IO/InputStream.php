@@ -30,4 +30,8 @@ interface InputStream
   public function reset($key = "");
   
   public function offset($offset);
+  
+  public function beginLog($key = "");
+  
+  public function endLog($key = "");
 }

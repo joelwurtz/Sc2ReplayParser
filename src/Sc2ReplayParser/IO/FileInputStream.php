@@ -67,4 +67,14 @@ class FileInputStream implements InputStream
 
     return fseek($this->resource, $offset, SEEK_SET);
   }
+  
+  public function beginLog($key = "")
+  {
+    
+  }
+  
+  public function endLog($key = "")
+  {
+    
+  }
 }

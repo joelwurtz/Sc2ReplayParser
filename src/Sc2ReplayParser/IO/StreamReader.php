@@ -96,6 +96,16 @@ abstract class StreamReader implements InputStream
     return $this->stream->offset($offset);
   }
   
+  public function beginLog($key = "")
+  {
+    $this->stream->beginLog($key);
+  }
+  
+  public function endLog($key = "")
+  {
+    return $this->stream->endLog($key);
+  }
+  
   public function findSequence($sequence, $fromStart = false)
   {
     //$this->mark("sequenceSearchStart");
